@@ -94,17 +94,7 @@ class OracleConnector(SQLConnector):
                 if datelike_type == "date":
                     return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.DATE())
 
-            maxlength = jsonschema_type.get("maxLength", 4000)
-            if not maxlength:
-                maxlength = 4000                  
-                if hasattr(self, "key_properties") and self.key_properties:
-                    if hasattr(self, "schema") and "properties" in self.schema:
-                        for prop_name, prop_schema in self.schema["properties"].items():
-                            if prop_schema == jsonschema_type:
-                                if prop_name.lower() in [k.lower() for k in self.key_properties]:                                    
-                                    maxlength = 500
-                                break
-            # =================================================================
+            maxlength = jsonschema_type.get("maxLength", 2000)            
             return cast(
                 sqlalchemy.types.TypeEngine, sqlalchemy.types.VARCHAR(maxlength)
             )
