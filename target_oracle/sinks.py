@@ -75,7 +75,7 @@ class OracleConnector(SQLConnector):
             )
 
 
-    def to_sql_type(self, jsonschema_type: dict) -> sqlalchemy.types.TypeEngine:  # noqa
+    def to_sql_type(self, jsonschema_type: dict, is_primary_key: bool = False) -> sqlalchemy.types.TypeEngine:  # noqa
         """Convert JSON Schema type to a SQL type.
         Args:
             jsonschema_type: The JSON Schema object.
@@ -94,7 +94,10 @@ class OracleConnector(SQLConnector):
                 if datelike_type == "date":
                     return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.DATE())
 
-            maxlength = jsonschema_type.get("maxLength", 2000)            
+            maxlength = jsonschema_type.get("maxLength", 4000)    
+            if is_primary_key and maxlength > 799:
+                maxlength = 799
+                self.logger.warning(f"PK column: giảm độ dài từ {jsonschema_type.get('maxLength', 4000)} xuống {maxlength} CHAR để tránh ORA-01450")        
             return cast(
                 sqlalchemy.types.TypeEngine, sqlalchemy.types.VARCHAR(maxlength)
             )
@@ -241,7 +244,7 @@ class OracleConnector(SQLConnector):
             columns.append(
                 sqlalchemy.Column(
                     property_name,
-                    self.to_sql_type(property_jsonschema)
+                    self.to_sql_type(property_jsonschema, is_primary_key=is_primary_key)
                 )
             )
         
