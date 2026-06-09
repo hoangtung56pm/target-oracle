@@ -82,7 +82,7 @@ class OracleConnector(SQLConnector):
         Returns:
             The SQL type.
         """
-        self.logger.info("jsonschema_type=%s", jsonschema_type)
+        # self.logger.info("jsonschema_type=%s", jsonschema_type)
         if self._jsonschema_type_check(jsonschema_type, ("string",)):
             datelike_type = get_datelike_property_type(jsonschema_type)
             if datelike_type:                
