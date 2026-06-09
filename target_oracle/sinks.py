@@ -82,17 +82,13 @@ class OracleConnector(SQLConnector):
         Returns:
             The SQL type.
         """
+        self.logger.info("jsonschema_type=%s", jsonschema_type)
         if self._jsonschema_type_check(jsonschema_type, ("string",)):
             datelike_type = get_datelike_property_type(jsonschema_type)
             if datelike_type:
+                if datelike_type == "oracle-date":
+                    return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.DATE())
                 if datelike_type == "date-time":
-                    desc = jsonschema_type.get("description", "").lower()
-
-                    if desc == "date":
-                        return cast(
-                            sqlalchemy.types.TypeEngine,
-                            sqlalchemy.types.DATE()
-                        )
                     return cast(
                         sqlalchemy.types.TypeEngine, sqlalchemy.types.TIMESTAMP()
                     )
