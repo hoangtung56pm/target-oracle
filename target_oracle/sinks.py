@@ -87,9 +87,17 @@ class OracleConnector(SQLConnector):
             datelike_type = get_datelike_property_type(jsonschema_type)
             if datelike_type:                
                 if datelike_type == "date-time":
-                    return cast(
-                        sqlalchemy.types.TypeEngine, sqlalchemy.types.TIMESTAMP()
-                    )
+                    col_description = jsonschema_type.get('description', '')
+        
+                    if col_description == 'date':
+                        # Nguồn là date → Oracle DATE
+                        return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.DATE())
+                    else:
+                        # Mặc định (timestamp hoặc ko xác định) → Oracle TIMESTAMP
+                        return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.TIMESTAMP())
+                    # return cast(
+                    #     sqlalchemy.types.TypeEngine, sqlalchemy.types.TIMESTAMP()
+                    # )
                 if datelike_type in "time":
                     return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.TIME())
                 if datelike_type == "date":
