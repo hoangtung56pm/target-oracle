@@ -146,7 +146,8 @@ class OracleConnector(SQLConnector):
             )
 
         if self._jsonschema_type_check(jsonschema_type, ("integer",)):
-            return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.INTEGER())
+            # return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.INTEGER())
+            return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.NUMERIC())
         
         if self._jsonschema_type_check(jsonschema_type, ("number",)):
             if self.config.get("prefer_float_over_numeric", False):
