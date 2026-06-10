@@ -84,6 +84,31 @@ class OracleConnector(SQLConnector):
         """
         # self.logger.info("jsonschema_type=%s", jsonschema_type)
         if self._jsonschema_type_check(jsonschema_type, ("string",)):
+            # ========== THÊM: XỬ LÝ SINGER.DECIMAL ==========
+            string_format = jsonschema_type.get('format') if isinstance(jsonschema_type, dict) else None
+            
+            if string_format in ('singer.decimal', 'x-singer.decimal'):
+                additional_props = jsonschema_type.get('additionalProperties', {})
+                scale_precision = additional_props.get('scale_precision', '')
+                
+                import re
+                numbers = re.findall(r'\d+', scale_precision) if scale_precision else []
+                
+                # Default cho DWH: đủ rộng cho mọi use case
+                precision, scale = 38, 10
+                
+                if len(numbers) >= 2:
+                    precision = min(int(numbers[0]), 38)
+                    scale = min(int(numbers[1]), precision)
+                elif len(numbers) == 1:
+                    precision = min(int(numbers[0]), 38)
+                    # Nếu có dấu phẩy ngay trước dấu đóng ngoặc -> scale=0
+                    if ',' in scale_precision and scale_precision.rstrip(')').endswith(','):
+                        scale = 0
+                
+                return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.NUMERIC(precision, scale))
+            # =================================================
+
             datelike_type = get_datelike_property_type(jsonschema_type)
             if datelike_type:                
                 if datelike_type == "date-time":
@@ -106,7 +131,7 @@ class OracleConnector(SQLConnector):
             maxlength = jsonschema_type.get("maxLength", 4000)    
             if is_primary_key and maxlength > 799:
                 maxlength = 799
-                self.logger.warning(f"PK column: giảm độ dài từ {jsonschema_type.get('maxLength', 4000)} xuống {maxlength} CHAR để tránh ORA-01450")        
+                # self.logger.warning(f"PK column: giảm độ dài từ {jsonschema_type.get('maxLength', 4000)} xuống {maxlength} CHAR để tránh ORA-01450")        
             return cast(
                 sqlalchemy.types.TypeEngine, sqlalchemy.types.VARCHAR(maxlength)
             )
@@ -117,6 +142,15 @@ class OracleConnector(SQLConnector):
         if self._jsonschema_type_check(jsonschema_type, ("number",)):
             if self.config.get("prefer_float_over_numeric", False):
                 return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.FLOAT())
+            multiple_of = jsonschema_type.get('multipleOf') if isinstance(jsonschema_type, dict) else None
+            if multiple_of:
+                import decimal
+                try:
+                    scale = abs(decimal.Decimal(str(multiple_of)).as_tuple().exponent)
+                    scale = min(scale, 38)  # Giới hạn scale tối đa
+                    return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.NUMERIC(38, scale))
+                except:
+                    pass
             return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.NUMERIC(38, 10))
         
         if self._jsonschema_type_check(jsonschema_type, ("boolean",)):
