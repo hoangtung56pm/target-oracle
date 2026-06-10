@@ -84,9 +84,9 @@ class OracleConnector(SQLConnector):
         """
         # self.logger.info("jsonschema_type=%s", jsonschema_type)
         if self._jsonschema_type_check(jsonschema_type, ("string",)):
-            # ========== THÊM: XỬ LÝ SINGER.DECIMAL ==========
+            # ========== XỬ LÝ SINGER.DECIMAL ==========
             string_format = jsonschema_type.get('format') if isinstance(jsonschema_type, dict) else None
-            
+
             if string_format in ('singer.decimal', 'x-singer.decimal'):
                 additional_props = jsonschema_type.get('additionalProperties', {})
                 scale_precision = additional_props.get('scale_precision', '')
@@ -94,19 +94,28 @@ class OracleConnector(SQLConnector):
                 import re
                 numbers = re.findall(r'\d+', scale_precision) if scale_precision else []
                 
-                # Default cho DWH: đủ rộng cho mọi use case
-                precision, scale = 38, 10
+                # Trường hợp 1: NUMBER không precision/scale (giống nguồn)
+                if not numbers:
+                    # Không có số nào → NUMBER thuần túy
+                    return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.NUMERIC())
                 
+                # Trường hợp 2: NUMBER(p,s) có cả precision và scale
                 if len(numbers) >= 2:
                     precision = min(int(numbers[0]), 38)
                     scale = min(int(numbers[1]), precision)
-                elif len(numbers) == 1:
+                    return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.NUMERIC(precision, scale))
+                
+                # Trường hợp 3: NUMBER(p) hoặc NUMBER(p,0)
+                if len(numbers) == 1:
                     precision = min(int(numbers[0]), 38)
                     # Nếu có dấu phẩy ngay trước dấu đóng ngoặc -> scale=0
                     if ',' in scale_precision and scale_precision.rstrip(')').endswith(','):
-                        scale = 0
+                        return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.NUMERIC(precision, 0))
+                    else:
+                        return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.NUMERIC(precision))
                 
-                return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.NUMERIC(precision, scale))
+                # Fallback (không bao giờ chạy đến đây)
+                return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.NUMERIC(38, 10))
             # =================================================
 
             datelike_type = get_datelike_property_type(jsonschema_type)
