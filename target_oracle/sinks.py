@@ -82,7 +82,7 @@ class OracleConnector(SQLConnector):
         Returns:
             The SQL type.
         """
-        # self.logger.info("jsonschema_type=%s", jsonschema_type)
+        self.logger.info("jsonschema_type=%s", jsonschema_type)
         if self._jsonschema_type_check(jsonschema_type, ("string",)):
             # ========== XỬ LÝ SINGER.DECIMAL ==========
             string_format = jsonschema_type.get('format') if isinstance(jsonschema_type, dict) else None
