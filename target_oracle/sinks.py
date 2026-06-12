@@ -97,7 +97,7 @@ class OracleConnector(SQLConnector):
                 # Trường hợp 1: NUMBER không precision/scale (giống nguồn)
                 if not numbers:
                     # Không có số nào → NUMBER thuần túy
-                    return cast(sqlalchemy.types.TypeEngine, sqlalchemy.types.NUMERIC())
+                    return cast(sqlalchemy.types.TypeEngine, oracle.NUMBER())
                 
                 # Trường hợp 2: NUMBER(p,s) có cả precision và scale
                 if len(numbers) >= 2:
